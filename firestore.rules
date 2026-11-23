@@ -1,0 +1,350 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Hardened Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidDateString(val) {
+      return val is string && val.size() == 10 && val.matches('^\\d{4}-\\d{2}-\\d{2}$');
+    }
+
+    function isOptionalDateString(data, key) {
+      return !(key in data) || data[key] == null || isValidDateString(data[key]);
+    }
+
+    function isOptionalString(data, key, maxLen) {
+      return !(key in data) || data[key] == null || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isOptionalUrl(data, key, maxLen) {
+      return !(key in data) || data[key] == null || data[key] == '' || (
+        data[key] is string &&
+        data[key].size() <= maxLen &&
+        data[key].matches('^https?://.*')
+      );
+    }
+
+    function isOptionalPositiveMoney(data, key) {
+      return !(key in data) || data[key] == null || (data[key] is number && data[key] > 0 && data[key] <= 1000000000);
+    }
+
+    function isValidDayNumber(val) {
+      return val is number && val >= 1 && val <= 31;
+    }
+
+    function isOptionalDayNumber(data, key) {
+      return !(key in data) || data[key] == null || isValidDayNumber(data[key]);
+    }
+
+    function parentUserExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // --- Validation Blueprints ---
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'createdAt', 'lastLogin']) &&
+        data.keys().hasOnly([
+          'uid', 'displayName', 'email', 'photoURL', 'emailVerified',
+          'phoneNumber', 'bio', 'jobTitle', 'website',
+          'createdAt', 'lastLogin', 'updatedAt'
+        ]) &&
+        data.uid is string && data.uid == userId && data.uid == request.auth.uid &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+        isOptionalString(data, 'email', 254) &&
+        isOptionalUrl(data, 'photoURL', 1000) &&
+        (!('emailVerified' in data) || data.emailVerified is bool) &&
+        isOptionalString(data, 'phoneNumber', 30) &&
+        isOptionalString(data, 'bio', 500) &&
+        isOptionalString(data, 'jobTitle', 100) &&
+        isOptionalUrl(data, 'website', 300) &&
+        data.createdAt is timestamp &&
+        data.lastLogin is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidTransaction(data, userId, transactionId) {
+      return data.keys().hasAll(['id', 'userId', 'description', 'amount', 'type', 'category', 'date', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'userId', 'description', 'amount', 'type', 'category', 'date', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) && data.id == transactionId &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.description is string && data.description.size() >= 1 && data.description.size() <= 200 &&
+        data.amount is number && data.amount > 0 && data.amount <= 1000000000 &&
+        data.type is string && (data.type == 'income' || data.type == 'expense') &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 60 &&
+        isValidDateString(data.date) &&
+        data.createdAt is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidGoal(data, userId, goalId) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'targetAmount', 'currentAmount', 'deadline', 'isAI', 'isCompleted', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'userId', 'title', 'targetAmount', 'currentAmount', 'deadline', 'isAI', 'isCompleted', 'createdAt', 'updatedAt']) &&
+        isValidId(data.id) && data.id == goalId &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.targetAmount is number && data.targetAmount > 0 && data.targetAmount <= 1000000000 &&
+        data.currentAmount is number && data.currentAmount >= 0 && data.currentAmount <= 1000000000 &&
+        isValidDateString(data.deadline) &&
+        data.isAI is bool &&
+        data.isCompleted is bool &&
+        data.createdAt is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidRecurring(data, userId, recurringId) {
+      return data.keys().hasAll([
+          'id', 'userId', 'description', 'amount', 'type', 'category',
+          'frequency', 'dayOfMonth', 'startDate', 'nextDueDate',
+          'autoProcess', 'isActive', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'userId', 'description', 'amount', 'type', 'category',
+          'frequency', 'dayOfMonth', 'startDate', 'nextDueDate',
+          'lastExecutedDate', 'autoProcess', 'isActive', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) && data.id == recurringId &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.description is string && data.description.size() >= 1 && data.description.size() <= 200 &&
+        data.amount is number && data.amount > 0 && data.amount <= 1000000000 &&
+        data.type is string && (data.type == 'income' || data.type == 'expense') &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 60 &&
+        data.frequency is string && (data.frequency == 'weekly' || data.frequency == 'biweekly' || data.frequency == 'monthly' || data.frequency == 'yearly') &&
+        isValidDayNumber(data.dayOfMonth) &&
+        isValidDateString(data.startDate) &&
+        isValidDateString(data.nextDueDate) &&
+        isOptionalDateString(data, 'lastExecutedDate') &&
+        data.autoProcess is bool &&
+        data.isActive is bool &&
+        data.createdAt is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidCompany(data, userId, companyId) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'employmentType', 'admissionDate', 'createdAt']) &&
+        data.keys().hasOnly([
+          'id', 'userId', 'name', 'cnpj', 'employmentType', 'admissionDate',
+          'baseSalary', 'paymentDay', 'advanceDay', 'dailyRate', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) && data.id == companyId &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        isOptionalString(data, 'cnpj', 18) &&
+        data.employmentType is string && (data.employmentType == 'fixed' || data.employmentType == 'freelancer') &&
+        isValidDateString(data.admissionDate) &&
+        isOptionalPositiveMoney(data, 'baseSalary') &&
+        isOptionalDayNumber(data, 'paymentDay') &&
+        isOptionalDayNumber(data, 'advanceDay') &&
+        isOptionalPositiveMoney(data, 'dailyRate') &&
+        (
+          (
+            data.employmentType == 'fixed' &&
+            'baseSalary' in data && data.baseSalary is number && data.baseSalary > 0 &&
+            'paymentDay' in data && isValidDayNumber(data.paymentDay)
+          ) ||
+          (
+            data.employmentType == 'freelancer' &&
+            'dailyRate' in data && data.dailyRate is number && data.dailyRate > 0
+          )
+        ) &&
+        data.createdAt is timestamp &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidStats(data, userId) {
+      return data.keys().hasAll(['userId', 'hasUsedAI', 'lastAnalysisDate']) &&
+        data.keys().hasOnly(['userId', 'hasUsedAI', 'lastAnalysisDate']) &&
+        data.userId is string && data.userId == userId && data.userId == request.auth.uid &&
+        data.hasUsedAI is bool &&
+        data.lastAnalysisDate is timestamp;
+    }
+
+    // --- Collection Rules ---
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().createdAt == request.time &&
+        incoming().lastLogin == request.time;
+
+      allow update: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt && (
+          // Action 1: Record Login
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['lastLogin', 'email', 'emailVerified']) &&
+            incoming().lastLogin == request.time
+          ) ||
+          // Action 2: Edit Profile Details
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName', 'photoURL', 'phoneNumber', 'bio', 'jobTitle', 'website', 'updatedAt'
+            ]) &&
+            incoming().updatedAt == request.time
+          )
+        );
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /transactions/{transactionId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(transactionId);
+        allow list: if isOwner(userId) && isValidId(userId) && resource.data.userId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(transactionId) &&
+          isValidTransaction(incoming(), userId, transactionId) &&
+          incoming().createdAt == request.time &&
+          parentUserExists(userId);
+
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(transactionId) &&
+          isValidTransaction(incoming(), userId, transactionId) &&
+          incoming().id == existing().id &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['description', 'amount', 'type', 'category', 'date', 'updatedAt']) &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(transactionId);
+      }
+
+      match /goals/{goalId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(goalId);
+        allow list: if isOwner(userId) && isValidId(userId) && resource.data.userId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(goalId) &&
+          isValidGoal(incoming(), userId, goalId) &&
+          incoming().createdAt == request.time &&
+          parentUserExists(userId);
+
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(goalId) &&
+          isValidGoal(incoming(), userId, goalId) &&
+          existing().isCompleted == false &&
+          incoming().id == existing().id &&
+          incoming().userId == existing().userId &&
+          incoming().isAI == existing().isAI &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['currentAmount', 'isCompleted', 'updatedAt']) &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(goalId);
+      }
+
+      match /recurring/{recurringId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(recurringId);
+        allow list: if isOwner(userId) && isValidId(userId) && resource.data.userId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(recurringId) &&
+          isValidRecurring(incoming(), userId, recurringId) &&
+          incoming().createdAt == request.time &&
+          parentUserExists(userId);
+
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(recurringId) &&
+          isValidRecurring(incoming(), userId, recurringId) &&
+          incoming().id == existing().id &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'description', 'amount', 'type', 'category', 'frequency',
+            'dayOfMonth', 'nextDueDate', 'lastExecutedDate',
+            'autoProcess', 'isActive', 'updatedAt'
+          ]) &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(recurringId);
+      }
+
+      match /companies/{companyId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(companyId);
+        allow list: if isOwner(userId) && isValidId(userId) && resource.data.userId == request.auth.uid;
+
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(companyId) &&
+          isValidCompany(incoming(), userId, companyId) &&
+          incoming().createdAt == request.time &&
+          parentUserExists(userId);
+
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(companyId) &&
+          isValidCompany(incoming(), userId, companyId) &&
+          incoming().id == existing().id &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'name', 'cnpj', 'employmentType', 'admissionDate',
+            'baseSalary', 'paymentDay', 'advanceDay', 'dailyRate', 'updatedAt'
+          ]) &&
+          incoming().updatedAt == request.time &&
+          parentUserExists(userId);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(companyId);
+      }
+
+      match /stats/{statDocId} {
+        allow get: if isOwner(userId) && isValidId(userId) && statDocId == 'data';
+        allow list: if false;
+
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          statDocId == 'data' &&
+          isValidStats(incoming(), userId) &&
+          incoming().lastAnalysisDate == request.time &&
+          parentUserExists(userId);
+
+        allow update: if isOwner(userId) &&
+          isValidId(userId) &&
+          statDocId == 'data' &&
+          isValidStats(incoming(), userId) &&
+          incoming().userId == existing().userId &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['hasUsedAI', 'lastAnalysisDate']) &&
+          incoming().lastAnalysisDate == request.time &&
+          parentUserExists(userId);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && statDocId == 'data';
+      }
+    }
+  }
+}

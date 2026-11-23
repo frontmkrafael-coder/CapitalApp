@@ -1,0 +1,34 @@
+{
+	"appId": "com.capitalyx.finance",
+	"appName": "Capitalyx",
+	"webDir": "dist",
+	"backgroundColor": "#0c0c12",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": false
+	},
+	"android": {
+		"backgroundColor": "#0c0c12",
+		"allowMixedContent": false,
+		"webContentsDebuggingEnabled": true
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 900,
+			"launchAutoHide": true,
+			"backgroundColor": "#0c0c12",
+			"showSpinner": false,
+			"splashFullScreen": false,
+			"splashImmersive": false
+		},
+		"Keyboard": {
+			"resize": "body",
+			"resizeOnFullScreen": true
+		},
+		"StatusBar": {
+			"overlaysWebView": false,
+			"backgroundColor": "#0c0c12",
+			"style": "DARK"
+		}
+	}
+}

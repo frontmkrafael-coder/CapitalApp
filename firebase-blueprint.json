@@ -1,0 +1,423 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Perfil privado e metadados de conta do usuário no Capitalyx.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID único do usuário no Firebase Auth."
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Nome de exibição do usuário."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254,
+          "description": "Endereço de e-mail do usuário (opcional/nulo dependendo do provedor)."
+        },
+        "photoURL": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 1000,
+          "description": "URL externa da foto de perfil do usuário."
+        },
+        "emailVerified": {
+          "type": "boolean",
+          "description": "Indica se o e-mail do usuário foi verificado."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Telefone de contato opcional do usuário."
+        },
+        "bio": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Biografia ou objetivos financeiros do usuário."
+        },
+        "jobTitle": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Profissão ou cargo do usuário."
+        },
+        "website": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 300,
+          "description": "Website pessoal ou portfólio do usuário."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp de criação do perfil definido pelo servidor."
+        },
+        "lastLogin": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp do último acesso definido pelo servidor."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp da última atualização do perfil definido pelo servidor."
+        }
+      },
+      "required": ["uid", "displayName", "createdAt", "lastLogin"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Lançamento financeiro (receita ou despesa) pertencente a um usuário.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID do documento da transação."
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID do proprietário da transação."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Descrição curta do lançamento."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Valor monetário positivo da transação."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["income", "expense"],
+          "description": "Tipo da movimentação: receita (income) ou despesa (expense)."
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Categoria da movimentação."
+        },
+        "date": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Data do lançamento no formato ISO YYYY-MM-DD."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp de criação definido pelo servidor."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp de atualização definido pelo servidor."
+        }
+      },
+      "required": ["id", "userId", "description", "amount", "type", "category", "date", "createdAt"]
+    },
+    "FinancialGoal": {
+      "title": "FinancialGoal",
+      "description": "Meta financeira com acompanhamento de progresso e prazo.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID do documento da meta."
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID do proprietário da meta."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Título objetivo da meta."
+        },
+        "targetAmount": {
+          "type": "number",
+          "description": "Valor alvo positivo da meta."
+        },
+        "currentAmount": {
+          "type": "number",
+          "description": "Valor já acumulado na meta (>= 0)."
+        },
+        "deadline": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Prazo da meta no formato YYYY-MM-DD."
+        },
+        "isAI": {
+          "type": "boolean",
+          "description": "Indica se a meta foi sugerida pela IA."
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "Indica se a meta foi atingida."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp de criação definido pelo servidor."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp da última atualização definido pelo servidor."
+        }
+      },
+      "required": ["id", "userId", "title", "targetAmount", "currentAmount", "deadline", "isAI", "isCompleted", "createdAt"]
+    },
+    "RecurringPayment": {
+      "title": "RecurringPayment",
+      "description": "Pagamento ou recebimento recorrente com controle de vencimento e lançamento automático.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID do documento da recorrência."
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID do proprietário da recorrência."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Nome ou descrição da conta/assinatura recorrente."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Valor positivo do pagamento recorrente."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["income", "expense"],
+          "description": "Tipo: receita (income) ou despesa (expense)."
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Categoria associada ao lançamento gerado."
+        },
+        "frequency": {
+          "type": "string",
+          "enum": ["weekly", "biweekly", "monthly", "yearly"],
+          "description": "Frequência de repetição."
+        },
+        "dayOfMonth": {
+          "type": "number",
+          "description": "Dia do vencimento (1 a 31)."
+        },
+        "startDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Data inicial no formato YYYY-MM-DD."
+        },
+        "nextDueDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Próxima data prevista de vencimento no formato YYYY-MM-DD."
+        },
+        "lastExecutedDate": {
+          "type": "string",
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Data do último ciclo processado (YYYY-MM-DD) ou nulo."
+        },
+        "autoProcess": {
+          "type": "boolean",
+          "description": "Indica se deve lançar automaticamente no extrato ao vencer."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indica se a recorrência está ativa ou pausada."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp de criação definido pelo servidor."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp da última atualização definido pelo servidor."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "description",
+        "amount",
+        "type",
+        "category",
+        "frequency",
+        "dayOfMonth",
+        "startDate",
+        "nextDueDate",
+        "autoProcess",
+        "isActive",
+        "createdAt"
+      ]
+    },
+    "CompanyRecord": {
+      "title": "CompanyRecord",
+      "description": "Cadastro de empresa onde o usuário trabalha (CLT/Fixo ou Freelancer com diária).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "ID do documento da empresa."
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID do proprietário do vínculo."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Nome ou razão social da empresa."
+        },
+        "cnpj": {
+          "type": "string",
+          "maxLength": 18,
+          "description": "CNPJ opcional formatado ou numérico."
+        },
+        "employmentType": {
+          "type": "string",
+          "enum": ["fixed", "freelancer"],
+          "description": "Regime de trabalho: fixed (CLT/Salário Fixo) ou freelancer (Diária)."
+        },
+        "admissionDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Data de admissão ou início no formato YYYY-MM-DD."
+        },
+        "baseSalary": {
+          "type": "number",
+          "description": "Salário base mensal (obrigatório quando fixed, nulo quando freelancer)."
+        },
+        "paymentDay": {
+          "type": "number",
+          "description": "Dia do pagamento mensal 1..31 (obrigatório quando fixed, nulo quando freelancer)."
+        },
+        "advanceDay": {
+          "type": "number",
+          "description": "Dia opcional do adiantamento salarial 1..31."
+        },
+        "dailyRate": {
+          "type": "number",
+          "description": "Valor da diária em BRL (obrigatório quando freelancer, nulo quando fixed)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp de criação definido pelo servidor."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp da última atualização definido pelo servidor."
+        }
+      },
+      "required": ["id", "userId", "name", "employmentType", "admissionDate", "createdAt"]
+    },
+    "UserStats": {
+      "title": "UserStats",
+      "description": "Estatísticas de uso da IA e conquistas do usuário.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "UID do proprietário das estatísticas."
+        },
+        "hasUsedAI": {
+          "type": "boolean",
+          "description": "Indica se o usuário já gerou ao menos uma análise de IA."
+        },
+        "lastAnalysisDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp da última análise de IA definida pelo servidor."
+        }
+      },
+      "required": ["userId", "hasUsedAI", "lastAnalysisDate"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Documento raiz do perfil privado de cada usuário autenticado."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Subcoleção de transações financeiras privadas do usuário."
+    },
+    "/users/{userId}/goals/{goalId}": {
+      "schema": { "$ref": "#/entities/FinancialGoal" },
+      "description": "Subcoleção de metas financeiras privadas do usuário."
+    },
+    "/users/{userId}/recurring/{recurringId}": {
+      "schema": { "$ref": "#/entities/RecurringPayment" },
+      "description": "Subcoleção de pagamentos e recebimentos recorrentes privados do usuário."
+    },
+    "/users/{userId}/companies/{companyId}": {
+      "schema": { "$ref": "#/entities/CompanyRecord" },
+      "description": "Subcoleção de empresas cadastradas (CLT/Fixo ou Freelancer) pelo usuário."
+    },
+    "/users/{userId}/stats/{statDocId}": {
+      "schema": { "$ref": "#/entities/UserStats" },
+      "description": "Subcoleção de estatísticas de uso (documento 'data') do usuário."
+    }
+  }
+}
